@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
+
+    <!-- 传入参数 -->
+    <xacro:arg name="sensor_type" default="vlp16"/>
+    <xacro:arg name="x" default="0.0"/>
+    <xacro:arg name="y" default="0.0"/>
+    <xacro:arg name="z" default="0.5"/>
+    <xacro:arg name="roll" default="0.0"/>
+    <xacro:arg name="pitch" default="1.57"/>
+    <xacro:arg name="yaw" default="0.0"/>
+    <xacro:arg name="parent_link" default="base_link"/>
+    <xacro:arg name="topic_name" default="/velodyne_points"/>
+    <xacro:arg name="frame_id" default="velodyne"/>
+
+    <!-- 包含基础机器人 -->
+    <xacro:include filename="$(find env_gazebo)/urdf/chassis.urdf.xacro"/>
+    
+    <!-- 雷达安装链接 -->
+    <link name="roLIDAR_Link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.05" length="0.1"/>
+            </geometry>
+            <material name="blue">
+                <color rgba="0 0 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.05" length="0.1"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.1"/>
+            <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+        </inertial>
+    </link>
+    
+    <!-- 雷达安装关节 -->
+    <joint name="roLIDAR_joint" type="fixed">
+        <parent link="$(arg parent_link)"/>
+        <child link="roLIDAR_Link"/>
+        <origin xyz="$(arg x) $(arg y) $(arg z)" 
+                rpy="$(arg roll) $(arg pitch) $(arg yaw)"/>
+    </joint>
+    
+    <!-- 包含雷达传感器 -->
+    <xacro:include filename="$(find env_gazebo)/urdf/sensor_VLP_64.xacro"/>
+
+</robot>

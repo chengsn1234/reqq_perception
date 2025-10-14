@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="base_robot">
+
+    <!-- 基础机器人链接 -->
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <box size="0.2 0.2 0.1"/>
+            </geometry>
+            <material name="white">
+                <color rgba="0.8 0.8 0.8 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.2 0.2 0.1"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="50.0"/>  <!-- 大幅增加质量防止反作用力 -->
+            <inertia ixx="4.17" ixy="0" ixz="0" iyy="4.17" iyz="0" izz="4.17"/>  <!-- 相应增加惯性矩 -->
+        </inertial>
+    </link>
+    
+    <!-- 前方标记 - 在正方体上方 -->
+    <link name="front_marker">
+        <visual>
+            <geometry>
+                <box size="0.1 0.02 0.02"/>  <!-- 一个细长的红色条作为前方标记 -->
+            </geometry>
+            <material name="red">
+                <color rgba="1 0 0 1"/>
+            </material>
+        </visual>
+        <!-- 禁用碰撞检测 -->
+        <inertial>
+            <mass value="0.01"/>
+            <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+        </inertial>
+    </link>
+    
+    <!-- 固定前方标记到机体上方 -->
+    <joint name="front_marker_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="front_marker"/>
+        <origin xyz="0.05 0 0.06" rpy="0 0 0"/>  <!-- 在机体上方，稍微偏前 -->
+    </joint>
+    
+    <!-- 禁用重力和碰撞 -->
+    <gazebo reference="base_link">
+        <gravity>false</gravity>
+        <material>Gazebo/Grey</material>
+        <!-- 增加阻尼来稳定机体 -->
+        <dampingFactor>0.5</dampingFactor>
+        <collision>
+            <surface>
+                <contact>
+                    <ode>
+                        <kp>0</kp>
+                        <kd>0</kd>
+                    </ode>
+                </contact>
+            </surface>
+        </collision>
+    </gazebo>
+    
+    <gazebo reference="front_marker">
+        <gravity>false</gravity>
+        <material>Gazebo/Red</material>
+        <collision>
+            <surface>
+                <contact>
+                    <ode>
+                        <kp>0</kp>
+                        <kd>0</kd>
+                    </ode>
+                </contact>
+            </surface>
+        </collision>
+    </gazebo>
+
+</robot>

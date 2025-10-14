@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+
+    
+    <arg name="sensor_type" default="vlp16" doc="雷达类型: vlp16 或 hdl32e"/>
+    <arg name="parent_link" default="base_link" doc="安装父链接"/>
+    <arg name="topic_name" default="/velodyne_points" doc="点云话题名称"/>
+    <arg name="frame_id" default="velodyne" doc="雷达坐标系ID"/>
+    
+    <!-- 机器人在Gazebo中的生成位置（ -->
+    <arg name="spawn_x" default="0.0" doc="生成X位置"/>
+    <arg name="spawn_y" default="0.0" doc="生成Y位置"/>
+    <arg name="spawn_z" default="2.0" doc="生成Z位置"/>
+    <arg name="spawn_yaw" default="0.0" doc="生成偏航角"/>
+    
+    <!-- 加载机器人模型 -->
+    <param name="robot_description" 
+           command="$(find xacro)/xacro 
+           $(find env_gazebo)/urdf/full_robot.urdf.xacro 
+           sensor_type:=$(arg sensor_type)
+           parent_link:=$(arg parent_link)
+           topic_name:=$(arg topic_name)
+           frame_id:=$(arg frame_id)"/>
+    
+    <!-- 在Gazebo中生成机器人模型 -->
+    <node name="spawn_urdf" 
+          pkg="gazebo_ros" 
+          type="spawn_model" 
+          args="-param robot_description -urdf -model robot 
+                -x $(arg spawn_x) 
+                -y $(arg spawn_y) 
+                -z $(arg spawn_z) 
+                -Y $(arg spawn_yaw)"/>
+
+</launch>

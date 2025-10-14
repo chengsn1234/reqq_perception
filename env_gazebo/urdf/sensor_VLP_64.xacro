@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:property name="gpu" value="true" />
+    <xacro:property name="organize_cloud" value="false" />
+    
+    <!-- 使用 HDL-32E 作为基础，但配置为64线 -->
+    <xacro:include filename="$(find velodyne_description)/urdf/HDL-32E.urdf.xacro" />
+
+    <!-- 64线雷达配置 -->
+    <!-- HDL-32E的垂直FOV约41度，64线雷达通常有更大的垂直范围 -->
+    <xacro:HDL-32E parent="roLIDAR_Link" name="velodyne" topic="/velodyne_points"
+        organize_cloud="${organize_cloud}" 
+        hz="10" 
+        lasers="64" 
+        samples="2000" 
+        min_range="0.3"
+        max_range="100.0" 
+        gpu="${gpu}"
+        noise="0.008"
+        min_angle="-3.14159"
+        max_angle="3.14159">
+        <origin xyz="0 0 0" rpy="0 0 0" /> 
+    </xacro:HDL-32E>
+
+</robot>

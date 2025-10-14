@@ -1,0 +1,22 @@
+# 云台控制器配置
+
+gimbal_yaw_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal_yaw_joint
+  pid: {p: 150.0, i: 0.05, d: 15.0}  # 增加强度以对抗反作用力
+
+gimbal_pitch_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal_pitch_joint
+  pid: {p: 150.0, i: 0.05, d: 15.0}  # 增加强度以对抗反作用力
+
+# 相机俯仰控制器配置 - 独立于云台
+gimbal_camera_position_controller:
+  type: effort_controllers/JointPositionController
+  joint: gimbal_camera_joint
+  pid: {p: 15.0, i: 0.0, d: 1.0}  # 大幅降低PID参数，去掉积分项
+
+# 关节状态控制器
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50

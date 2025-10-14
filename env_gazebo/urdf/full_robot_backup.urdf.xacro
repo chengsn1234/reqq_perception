@@ -1,0 +1,284 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
+
+    <!-- 传入参数 (只保留config文件中有的参数) -->
+    <xacro:arg name="sensor_type" default="vlp16"/>
+    <xacro:arg name="parent_link" default="base_link"/>
+    <xacro:arg name="topic_name" default="/velodyne_points"/>
+    <xacro:arg name="frame_id" default="velodyne"/>
+    
+    <!-- 云台和雷达的相对位置(固定值，写死在这里) -->
+    <xacro:property name="gimbal_x" value="0.0"/>
+    <xacro:property name="gimbal_y" value="0.0"/>
+    <xacro:property name="gimbal_z" value="0.0 "/>  <!-- 云台在飞行器底部 -->
+    <xacro:property name="gimbal_radius" value="0.02"/>  <!-- 减小球形基座半径 -->
+    
+    <xacro:property name="lidar_x" value="0.0"/>
+    <xacro:property name="lidar_y" value="0.0"/>
+    <xacro:property name="lidar_z" value="-0.1"/>  <!-- 雷达在云台下方 -->
+    <xacro:property name="lidar_roll" value="0.0"/>
+    <xacro:property name="lidar_pitch" value="0.0"/>
+    <xacro:property name="lidar_yaw" value="0.0"/>
+
+    <!-- 相机在云台俯仰臂上的相对位姿（前方、默认下俯） -->
+    <xacro:property name="camera_x" value="0.15"/>
+    <xacro:property name="camera_y" value="0.0"/>
+    <xacro:property name="camera_z" value="0.0"/>
+    <xacro:property name="camera_roll" value="0.0"/>
+    <!-- 约 -20 度下俯 -->
+    <xacro:property name="camera_pitch" value="-0.3491"/>
+    <xacro:property name="camera_yaw" value="0.0"/>
+
+    <!-- 包含基础机器人 -->
+    <xacro:include filename="$(find env_gazebo)/urdf/chassis.urdf.xacro"/>
+    
+    <!-- 球形云台基座 (yaw轴) -->
+    <link name="gimbal_base_link">
+        <visual>
+            <geometry>
+                <sphere radius="${gimbal_radius}"/>
+            </geometry>
+            <material name="gray">
+                <color rgba="0.5 0.5 0.5 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <sphere radius="${gimbal_radius}"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.2"/>
+            <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+        </inertial>
+        <gravity>0</gravity>  <!-- 禁用重力 -->
+    </link>
+    
+    <!-- 云台yaw关节 (绕Z轴旋转，可360度) -->
+    <joint name="gimbal_yaw_joint" type="revolute">
+        <parent link="$(arg parent_link)"/>
+        <child link="gimbal_base_link"/>
+        <origin xyz="${gimbal_x} ${gimbal_y} ${gimbal_z}" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-3.14159" upper="3.14159" effort="10" velocity="1.0"/>
+    </joint>
+    
+    <!-- 云台俯仰臂 (pitch轴) -->
+    <link name="gimbal_pitch_link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.01" length="0.03"/>  <!-- 减小圆柱体尺寸 -->
+            </geometry>
+            <material name="darkgray">
+                <color rgba="0.3 0.3 0.3 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.01" length="0.03"/>  <!-- 减小圆柱体尺寸 -->
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.1"/>
+            <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+        </inertial>
+        <gravity>0</gravity>  <!-- 禁用重力 -->
+    </link>
+    
+    <!-- 云台pitch关节 (绕Y轴旋转，可±90度) -->
+    <joint name="gimbal_pitch_joint" type="revolute">
+        <parent link="gimbal_base_link"/>
+        <child link="gimbal_pitch_link"/>
+        <origin xyz="0 0 -${gimbal_radius}" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+    </joint>
+    
+    <!-- 雷达安装链接 -->
+    <link name="roLIDAR_Link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.04" length="0.05"/>
+            </geometry>
+            <material name="blue">
+                <color rgba="0 0 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.03" length="0.02"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.05"/>
+            <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+        </inertial>
+        <gravity>0</gravity>  <!-- 禁用重力 -->
+    </link>
+    
+    <!-- 雷达安装关节 (固定在云台pitch臂上) -->
+    <joint name="roLIDAR_joint" type="fixed">
+        <parent link="gimbal_pitch_link"/>
+        <child link="roLIDAR_Link"/>
+        <origin xyz="${lidar_x} ${lidar_y} ${lidar_z}" 
+                rpy="${lidar_roll} ${lidar_pitch} ${lidar_yaw}"/>
+    </joint>
+
+    <!-- 云台相机机身 link（随 pitch 关节俯仰），默认朝前并下俯 -->
+    <link name="gimbal_camera_link">
+        <visual>
+            <geometry>
+                <!-- 简单矩形体表示相机本体 -->
+                <box size="0.06 0.04 0.04"/>
+            </geometry>
+            <material name="black">
+                <color rgba="0.05 0.05 0.05 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.06 0.04 0.04"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.08"/>
+            <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/>
+        </inertial>
+        <gravity>0</gravity>
+    </link>
+
+    <!-- 相机安装在机体前方，可独立俯仰调节 -->
+    <joint name="gimbal_camera_joint" type="revolute">
+        <parent link="base_link"/>
+        <child link="gimbal_camera_link"/>
+        <origin xyz="${camera_x} ${camera_y} ${camera_z}" rpy="${camera_roll} 0 ${camera_yaw}"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.57" upper="1.57" effort="5" velocity="1.0"/>
+    </joint>
+
+    <!-- 可选：光学坐标系（z 前、x 右、y 下），便于与 ROS 相机规范一致 -->
+    <link name="gimbal_camera_optical_frame">
+        <inertial>
+            <mass value="0.0001"/>
+            <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+        </inertial>
+        <gravity>0</gravity>
+    </link>
+    <!-- 旋转到 ROS 光学坐标：从机身坐标（x 前 y 左 z 上）到光学（z 前 x 右 y 下）：R = Rz(-90) * Ry(-90) -->
+    <joint name="gimbal_camera_optical_joint" type="fixed">
+        <parent link="gimbal_camera_link"/>
+        <child link="gimbal_camera_optical_frame"/>
+        <origin xyz="0 0 0" rpy="0 -1.5708 -1.5708"/>
+    </joint>
+    
+    <!-- 禁用所有组件的重力 -->
+    <gazebo reference="gimbal_base_link">
+        <gravity>false</gravity>
+    </gazebo>
+    
+    <gazebo reference="gimbal_pitch_link">
+        <gravity>false</gravity>
+    </gazebo>
+    
+    <gazebo reference="roLIDAR_Link">
+        <gravity>false</gravity>
+    </gazebo>
+
+    <gazebo reference="gimbal_camera_link">
+        <gravity>false</gravity>
+    </gazebo>
+
+    <gazebo reference="gimbal_camera_optical_frame">
+        <gravity>false</gravity>
+    </gazebo>
+    
+    <!-- Gazebo 插件：发布关节状态 -->
+    <gazebo>
+        <plugin name="gazebo_ros_joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+    <!-- Gazebo 相机传感器与 ROS 插件（挂在 gimbal_camera_link 上） -->
+    <gazebo reference="gimbal_camera_link">
+        <sensor type="camera" name="gimbal_camera_sensor">
+            <update_rate>30</update_rate>
+            <visualize>true</visualize>
+            <camera name="gimbal_camera">
+                <horizontal_fov>1.0472</horizontal_fov> <!-- ~60 deg -->
+                <image>
+                    <width>640</width>
+                    <height>480</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.05</near>
+                    <far>100.0</far>
+                </clip>
+            </camera>
+            <plugin name="gimbal_camera_controller" filename="libgazebo_ros_camera.so">
+                <alwaysOn>true</alwaysOn>
+                <updateRate>30.0</updateRate>
+                <cameraName>gimbal_camera</cameraName>
+                <imageTopicName>image_raw</imageTopicName>
+                <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+                <frameName>gimbal_camera_optical_frame</frameName>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+            <robotNamespace>/</robotNamespace>
+            <jointName>gimbal_yaw_joint, gimbal_pitch_joint</jointName>
+            <updateRate>50.0</updateRate>
+            <alwaysOn>true</alwaysOn>
+        </plugin>
+    </gazebo>
+    
+    <!-- Gazebo 控制插件 -->
+    <gazebo>
+        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+            <robotNamespace>/</robotNamespace>
+        </plugin>
+    </gazebo>
+    
+    <!-- 云台yaw关节传动 -->
+    <transmission name="gimbal_yaw_trans">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="gimbal_yaw_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="gimbal_yaw_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    
+    <!-- 云台pitch关节传动 -->
+    <transmission name="gimbal_pitch_trans">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="gimbal_pitch_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="gimbal_pitch_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    
+    <!-- 根据传感器类型包含对应的雷达传感器 -->
+    <xacro:property name="sensor_type_val" value="$(arg sensor_type)"/>
+    
+    <xacro:if value="${sensor_type_val == 'vlp16'}">
+        <xacro:include filename="$(find env_gazebo)/urdf/sensor_VLP16.xacro"/>
+    </xacro:if>
+    
+    <xacro:if value="${sensor_type_val == 'hdl32e'}">
+        <xacro:include filename="$(find env_gazebo)/urdf/sensor_HDL32E.xacro"/>
+    </xacro:if>
+    
+    <!-- 禁用雷达链接的重力 -->
+    <gazebo reference="velodyne_base_link">
+        <gravity>false</gravity>
+    </gazebo>
+    
+    <gazebo reference="velodyne">
+        <gravity>false</gravity>
+    </gazebo>
+
+</robot>

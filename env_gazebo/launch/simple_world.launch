@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <!-- 启动Gazebo服务器和客户端 -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find env_gazebo)/worlds/plane_with_objects.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+    <arg name="verbose" value="false"/>
+  </include>
+
+</launch>

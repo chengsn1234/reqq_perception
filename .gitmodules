@@ -1,0 +1,12 @@
+[submodule "perception/mapping/elevation_mapping"]
+	path = perception/mapping/elevation_mapping
+	url = https://github.com/ANYbotics/elevation_mapping.git
+[submodule "perception/mapping/kindr"]
+	path = perception/mapping/kindr
+	url = https://github.com/ANYbotics/kindr.git
+[submodule "perception/mapping/kindr_ros"]
+	path = perception/mapping/kindr_ros
+	url = https://github.com/ANYbotics/kindr_ros.git
+[submodule "perception/mapping/message_logger"]
+	path = perception/mapping/message_logger
+	url = https://github.com/ANYbotics/message_logger.git

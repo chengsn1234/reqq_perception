@@ -1,48 +1,41 @@
-# Mapping Dependencies Installation Guide
+# Mapping Dependencies Guide
 
-这个目录包含了elevation mapping相关的依赖库。为了保持仓库轻量，第三方库不包含在版本控制中，需要单独克隆。
+这个目录包含了elevation mapping相关的依赖库，使用Git submodules管理。
 
-## 第三方依赖库
+## Git Submodules依赖库
 
-### 1. elevation_mapping
+本项目使用Git submodules来管理以下第三方依赖：
+
+- **elevation_mapping**: ANYbotics开源的elevation mapping库
+- **kindr**: 运动学和动力学表示库  
+- **kindr_ros**: kindr的ROS接口库
+- **message_logger**: 消息日志库
+
+## 初始化和更新子模块
+
+### 首次克隆仓库后，初始化所有子模块：
+
 ```bash
-cd perception/mapping/
-git clone https://github.com/ANYbotics/elevation_mapping.git
+cd reqq_perception
+git submodule init
+git submodule update
 ```
 
-### 2. kindr
+### 或者一次性克隆包含子模块的仓库：
+
 ```bash
-cd perception/mapping/
-git clone https://github.com/ANYbotics/kindr.git
+git clone --recursive https://github.com/chengsn1234/reqq_perception.git
 ```
 
-### 3. kindr_ros
-```bash
-cd perception/mapping/
-git clone https://github.com/ANYbotics/kindr_ros.git
-```
-
-### 4. message_logger
-```bash
-cd perception/mapping/
-git clone https://github.com/ANYbotics/message_logger.git
-```
-
-## 一键安装脚本
-
-你可以运行以下命令来安装所有依赖：
+### 更新子模块到最新版本：
 
 ```bash
-cd perception/mapping/
-git clone https://github.com/ANYbotics/elevation_mapping.git
-git clone https://github.com/ANYbotics/kindr.git
-git clone https://github.com/ANYbotics/kindr_ros.git
-git clone https://github.com/ANYbotics/message_logger.git
+git submodule update --remote
 ```
 
 ## 编译
 
-安装完所有依赖后，回到工作空间根目录编译：
+初始化子模块后，回到工作空间根目录编译：
 
 ```bash
 cd ~/reqq_ws

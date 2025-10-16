@@ -1,6 +1,0 @@
-# Third-party libraries in mapping folder (exclude from version control)
-perception/mapping/elevation_mapping
-perception/mapping/kindr
-perception/mapping/kindr_ros  
-perception/mapping/message_logger
-

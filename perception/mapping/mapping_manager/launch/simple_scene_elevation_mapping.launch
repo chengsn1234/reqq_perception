@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <!-- Arguments for robot spawn position -->
+  <arg name="sensor_type" default="vlp16" doc="雷达类型: vlp16 或 hdl32e"/>
+  <arg name="spawn_x" default="0.0" doc="机器人生成X位置"/>
+  <arg name="spawn_y" default="0.0" doc="机器人生成Y位置"/>
+  <arg name="spawn_z" default="2.0" doc="机器人生成Z位置"/>
+  <arg name="spawn_yaw" default="0.0" doc="机器人生成偏航角"/>
+  <arg name="use_rviz" default="true" doc="是否启动RViz"/>
+
+  <!-- Launch simple scene environment -->
+  <include file="$(find env_gazebo)/launch/simple_scene.launch">
+    <arg name="sensor_type" value="$(arg sensor_type)"/>
+    <arg name="spawn_x" value="$(arg spawn_x)"/>
+    <arg name="spawn_y" value="$(arg spawn_y)"/>
+    <arg name="spawn_z" value="$(arg spawn_z)"/>
+    <arg name="spawn_yaw" value="$(arg spawn_yaw)"/>
+    <arg name="use_rviz" value="false"/> <!-- We'll start our own RViz -->
+  </include>
+
+  <!-- Publish tf 'base_link' as pose for elevation mapping -->
+  <node pkg="elevation_mapping_demos" type="tf_to_pose_publisher.py" name="simple_scene_pose_publisher">
+    <param name="from_frame" type="string" value="map"/>
+    <param name="to_frame" type="string" value="base_link"/>
+  </node>
+
+  <!-- Run a passthrough filter to down-sample the sensor point cloud -->
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">
+    <remap from="~input" to="/velodyne_points"/>
+    <remap from="~output" to="/velodyne_points_downsampled"/>
+    <rosparam>
+      filter_field_name: z
+      filter_limit_min: -5.0
+      filter_limit_max: 15.0  <!-- Limit the range of points to forward to 15 meters in viewing direction-->
+      filter_limit_negative: False
+      leaf_size: 0.1  <!-- Limit the density to 10 cm-->
+    </rosparam>
+  </node>
+
+  <!-- Launch elevation mapping node -->
+  <node pkg="elevation_mapping" type="elevation_mapping" name="elevation_mapping" output="screen">
+    <rosparam command="load" file="$(find mapping_manager)/config/robots/simple_scene_robot.yaml"/>
+    <rosparam command="load" file="$(find mapping_manager)/config/postprocessing/postprocessor_pipeline.yaml"/>
+  </node>
+
+  <!-- Launch RViz with the demo configuration if requested -->
+  <group if="$(arg use_rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mapping_manager)/rviz/simple_scene_elevation_mapping.rviz"/>
+  </group>
+
+</launch>

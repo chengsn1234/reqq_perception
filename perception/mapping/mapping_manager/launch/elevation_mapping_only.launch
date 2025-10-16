@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+  <!-- Arguments for elevation mapping configuration -->
+  <arg name="use_rviz" default="true" doc="是否启动RViz"/>
+  <arg name="robot_config" default="simple_scene_robot.yaml" doc="机器人配置文件名"/>
+  <arg name="postprocess_config" default="postprocessor_pipeline.yaml" doc="后处理配置文件名"/>
+  <arg name="from_frame" default="map" doc="TF源坐标系"/>
+  <arg name="to_frame" default="base_link" doc="TF目标坐标系"/>
+  <arg name="input_topic" default="/velodyne_points" doc="输入点云话题"/>
+  <arg name="output_topic" default="/velodyne_points_downsampled" doc="输出点云话题"/>
+  <arg name="enable_filter" default="true" doc="是否启用点云滤波"/>
+
+  <!-- Publish tf for elevation mapping -->
+  <node pkg="elevation_mapping_demos" type="tf_to_pose_publisher.py" name="elevation_mapping_pose_publisher">
+    <param name="from_frame" type="string" value="$(arg from_frame)"/>
+    <param name="to_frame" type="string" value="$(arg to_frame)"/>
+  </node>
+
+  <!-- Run a passthrough filter to down-sample the sensor point cloud (optional) -->
+  <group if="$(arg enable_filter)">
+    <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid pcl_manager" output="screen">
+      <remap from="~input" to="$(arg input_topic)"/>
+      <remap from="~output" to="$(arg output_topic)"/>
+      <rosparam>
+        filter_field_name: z
+        filter_limit_min: -5.0
+        filter_limit_max: 15.0  <!-- Limit the range of points to forward to 15 meters in viewing direction-->
+        filter_limit_negative: False
+        leaf_size: 0.1  <!-- Limit the density to 10 cm-->
+      </rosparam>
+    </node>
+  </group>
+
+  <!-- Launch elevation mapping node -->
+  <node pkg="elevation_mapping" type="elevation_mapping" name="elevation_mapping" output="screen">
+    <rosparam command="load" file="$(find mapping_manager)/config/robots/$(arg robot_config)"/>
+    <rosparam command="load" file="$(find mapping_manager)/config/postprocessing/$(arg postprocess_config)"/>
+  </node>
+
+  <!-- Launch RViz with the demo configuration if requested -->
+  <group if="$(arg use_rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mapping_manager)/rviz/simple_scene_elevation_mapping.rviz"/>
+  </group>
+
+</launch>

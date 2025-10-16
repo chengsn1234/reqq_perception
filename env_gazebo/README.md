@@ -1,11 +1,13 @@
 # 雷达传感器仿真环境
 
-这个包提供了完整的雷达传感器仿真环境，支持VLP-16和HDL-32E两种雷达类型。
+这个包提供了完整的雷达传感器仿真环境，支持VLP-16、VLP-64和HDL-32E三种雷达类型。
 
-**新增功能**：
-- 在机体前方安装了独立的云台相机，可独立俯仰调节（与云台雷达分离）
-- 相机默认朝前，初始下俯角约-20度，可通过dynamic_reconfigure调节
-- 相机发布标准的ROS图像话题和相机内参话题
+**主要功能**：
+- 支持多种Velodyne雷达类型（VLP-16、VLP-64、HDL-32E）
+- 云台式雷达安装，支持yaw和pitch两轴运动
+- 机体前方安装独立云台相机，可独立俯仰调节
+- 通过dynamic_reconfigure实时控制云台和机器人位置
+- 完整的Gazebo仿真环境和RViz可视化
 
 ## 文件结构
 
@@ -88,29 +90,11 @@ env_gazebo/
 - 控制机器人在Gazebo世界中的位置和姿态
 - 通过dynamic_reconfigure实时调节所有参数
 
-### sensor_config.yaml
-
-简化的雷达配置文件，只包含必要参数：
-
-```yaml
-lidar:
-  sensor_type: vlp16           # 雷达选型: vlp16 或 hdl32e
-  position:                    # 雷达位置和姿态
-    x: 0.0                     # X坐标 (m)
-    y: 0.0                     # Y坐标 (m)  
-    z: 1.8                     # Z坐标 (m)
-    roll: 0.0                  # 翻滚角 (rad)
-    pitch: 0.0                 # 俯仰角 (rad)
-    yaw: 0.0                   # 偏航角 (rad)
-  parent_link: base_link       # 安装父链接
-  topic_name: /velodyne_points # 点云话题名称
-  frame_id: velodyne           # 坐标系ID
-```
-
 ### 支持的传感器类型
 
-**雷达传感器**:
+**支持的传感器类型**:
 - **vlp16**: Velodyne VLP-16 (16线激光雷达) - 安装在云台上可俯仰偏航
+- **vlp64**: Velodyne VLP-64 (64线激光雷达) - 安装在云台上可俯仰偏航  
 - **hdl32e**: Velodyne HDL-32E (32线激光雷达) - 安装在云台上可俯仰偏航
 
 **相机传感器**:
@@ -145,6 +129,9 @@ lidar:
 # 使用默认VLP-16雷达
 roslaunch env_gazebo simple_scene.launch
 
+# 使用VLP-64雷达
+roslaunch env_gazebo simple_scene.launch sensor_type:=vlp64
+
 # 使用HDL-32E雷达
 roslaunch env_gazebo simple_scene.launch sensor_type:=hdl32e
 
@@ -173,7 +160,7 @@ roslaunch env_gazebo simple_scene.launch gui:=false
 - `/gimbal_camera_position_controller/command`: 相机俯仰控制 (std_msgs/Float64)
 
 *TF坐标系*：
-- `map -> base_link -> gimbal_base_link -> gimbal_pitch_link -> roLIDAR_Link -> velodyne`
+- `map -> odom -> base_link -> gimbal_base_link -> gimbal_pitch_link -> roLIDAR_Link -> velodyne`
 - `base_link -> gimbal_camera_link -> gimbal_camera_optical_frame`
 
 **查看相机图像**：
@@ -246,8 +233,8 @@ roslaunch env_gazebo robot_spawn.launch
 - `spawn_yaw`: 机器人在世界中的偏航角 (默认: 0.0)
 
 **雷达配置参数**:
-- `sensor_type`: 雷达类型 vlp16/hdl32e (默认: vlp16)
-- `parent_link`: 雷达安装的父链接 (默认: base_link)
+- `sensor_type`: 雷达类型 vlp16/vlp64/hdl32e (默认: vlp16)
+- `parent_link`: 雷达安装的父链接 (默认: gimbal_pitch_link)
 - `topic_name`: 点云话题名称 (默认: /velodyne_points)
 - `frame_id`: 雷达坐标系ID (默认: velodyne)
 
@@ -279,32 +266,46 @@ roslaunch env_gazebo robot_spawn.launch
 **雷达相关坐标系**:
 ```
 map
-└── base_link
-    └── gimbal_base_link (云台yaw轴)
-        └── gimbal_pitch_link (云台pitch轴)
-            └── roLIDAR_Link (雷达安装点)
-                └── velodyne_base_link
-                    └── velodyne (雷达扫描坐标系)
+└── odom
+    └── base_link
+        └── gimbal_base_link (云台yaw轴)
+            └── gimbal_pitch_link (云台pitch轴)
+                └── roLIDAR_Link (雷达安装点)
+                    └── velodyne_base_link
+                        └── velodyne (雷达扫描坐标系)
 ```
 
 **相机相关坐标系**:
 ```
-map  
-└── base_link
-    └── gimbal_camera_link (相机机身)
-        └── gimbal_camera_optical_frame (ROS相机光学坐标系)
+map
+└── odom
+    └── base_link
+        └── gimbal_camera_link (相机机身)
+            └── gimbal_camera_optical_frame (ROS相机光学坐标系)
 ```
 
-## 修改雷达配置
+## 配置修改
 
-1. 编辑 `config/sensor_config.yaml` 文件
-2. 修改以下参数：
-   - `sensor_type`: 雷达类型 (vlp16/hdl32e)
-   - `position`: 雷达位置和姿态 (x,y,z,roll,pitch,yaw)
-   - `parent_link`: 安装父链接名称
-   - `topic_name`: 点云发布话题名称
-   - `frame_id`: 雷达坐标系ID
-3. 重新启动launch文件
+### 修改雷达类型
+
+通过launch参数选择不同的雷达类型：
+```bash
+# 使用VLP-16
+roslaunch env_gazebo simple_scene.launch sensor_type:=vlp16
+
+# 使用VLP-64  
+roslaunch env_gazebo simple_scene.launch sensor_type:=vlp64
+
+# 使用HDL-32E
+roslaunch env_gazebo simple_scene.launch sensor_type:=hdl32e
+```
+
+### 修改机器人生成位置
+
+```bash
+# 自定义生成位置和朝向
+roslaunch env_gazebo simple_scene.launch spawn_x:=5.0 spawn_y:=3.0 spawn_z:=2.0 spawn_yaw:=1.57
+```
 
 ## 故障排除
 
@@ -318,17 +319,24 @@ map
 ### 编译工作空间
 ```bash
 cd ~/reqq_ws
-catkin build
+catkin_make
 source devel/setup.bash
 ```
 
 ## 扩展使用
 
 ### 添加新的雷达类型
-1. 在config/sensor_config.yaml中添加新雷达配置
-2. 在configurable_lidar.urdf.xacro中添加对应的条件分支
-3. 更新launch文件以支持新雷达类型
+1. 在urdf/目录下创建新的sensor_XXX.xacro文件
+2. 在robot_spawn.launch中添加对应的条件分支
+3. 更新URDF中的雷达选择逻辑
 
 ### 自定义世界文件
 1. 在worlds/目录下创建新的.world文件
-2. 使用world_name参数指定自定义世界文件
+2. 修改simple_world.launch中的world_name参数指定自定义世界文件
+
+### 编译工作空间
+```bash
+cd ~/reqq_ws
+catkin_make
+source devel/setup.bash
+```

@@ -39,6 +39,13 @@
     <rosparam command="load" file="$(find mapping_manager)/config/postprocessing/$(arg postprocess_config)"/>
   </node>
 
+  <!-- Launch height query node -->
+  <node pkg="mapping_manager" type="height_query_node.py" name="height_query_node" output="screen">
+    <param name="map_frame" value="map"/>
+    <param name="base_frame" value="base_link"/>
+    <param name="elevation_layer" value="elevation"/>
+  </node>
+
   <!-- Launch RViz with the demo configuration if requested -->
   <group if="$(arg use_rviz)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mapping_manager)/rviz/simple_scene_elevation_mapping.rviz"/>

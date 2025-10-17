@@ -64,6 +64,10 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>grid_map_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>elevation_mapping</exec_depend>
   <exec_depend>elevation_mapping_demos</exec_depend>
   <exec_depend>env_gazebo</exec_depend>
